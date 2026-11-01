@@ -3,317 +3,322 @@ import sqlite3
 import pandas as pd
 from datetime import date
 
-# -------------------------------
-# 1. DATABASE CONNECTION
-# -------------------------------
+# NOTE: st.set_page_config() is handled by app.py — NOT repeated here.
 
-conn = sqlite3.connect(
-    "health_data.db",
-    check_same_thread=False
-)
+# =========================================================
+# DATABASE
+# =========================================================
+
+conn = sqlite3.connect("health_data.db", check_same_thread=False)
 
 conn.execute("""
 CREATE TABLE IF NOT EXISTS health_data (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    date TEXT,
-    weight REAL,
-    steps INTEGER,
-    sleep REAL
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    date    TEXT,
+    weight  REAL,
+    steps   INTEGER,
+    sleep   REAL
 )
 """)
 conn.commit()
 
-# -------------------------------
-# 2. PAGE CONFIGURATION
-# -------------------------------
 
-st.set_page_config(
-    page_title="Healthcare AI Agent",
-    page_icon="🏥",
-    layout="wide"
-)
+# =========================================================
+# PAGE CSS
+# =========================================================
 
-st.title("🏥 Healthcare Monitoring AI Agent")
-st.write(
-    "Track your daily health data and view basic health insights."
-)
+st.markdown("""
+<style>
 
-st.info(
-    "This application supports health tracking only. "
-    "It does not diagnose diseases or replace a doctor."
-)
+.form-card {
+    background: white;
+    border-radius: 22px;
+    padding: 28px;
+    border: 1px solid rgba(139,114,217,0.1);
+    box-shadow: 0 4px 20px rgba(139,114,217,0.07);
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s ease;
+}
 
-# -------------------------------
-# 3. SIDEBAR
-# -------------------------------
+.form-card-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1E293B;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
-st.sidebar.title("Navigation")
+.tip-card {
+    background: linear-gradient(135deg, #F0EDFD 0%, #EDE9FA 100%);
+    border: 1px solid rgba(139,114,217,0.15);
+    border-left: 4px solid #8B72D9;
+    border-radius: 14px;
+    padding: 16px 18px;
+    font-size: 13px;
+    color: #4C3599;
+    margin: 16px 0;
+    animation: fadeUp 0.7s ease;
+}
 
-page = st.sidebar.radio(
-    "Choose a section",
-    [
-        "Dashboard",
-        "Enter Health Data",
-        "Health Assistant"
-    ]
-)
+.chart-card {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid rgba(139,114,217,0.08);
+    box-shadow: 0 2px 12px rgba(139,114,217,0.06);
+    margin-bottom: 20px;
+    animation: fadeUp 0.75s ease;
+}
 
-# -------------------------------
-# 4. ENTER HEALTH DATA
-# -------------------------------
+.chart-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1E293B;
+    margin-bottom: 14px;
+}
 
-if page == "Enter Health Data":
+.empty-state {
+    text-align: center;
+    padding: 52px 32px;
+    background: white;
+    border-radius: 20px;
+    border: 1px dashed #DDD6FE;
+    margin: 20px 0;
+}
 
-    st.header("📝 Enter Daily Health Data")
+.empty-state-icon { font-size: 64px; display: block; margin-bottom: 16px; }
+.empty-state-title { font-size: 18px; font-weight: 700; color: #1E293B; margin-bottom: 8px; }
+.empty-state-desc  { font-size: 14px; color: #94A3B8; }
 
-    with st.form("health_form"):
+@keyframes fadeUp {
+    from { opacity:0; transform:translateY(18px); }
+    to   { opacity:1; transform:translateY(0); }
+}
 
-        health_date = st.date_input(
-            "Select Date",
-            value=date.today()
-        )
+@keyframes fadeDown {
+    from { opacity:0; transform:translateY(-18px); }
+    to   { opacity:1; transform:translateY(0); }
+}
 
+</style>
+""", unsafe_allow_html=True)
+
+
+# =========================================================
+# HEADER
+# =========================================================
+
+st.markdown("""
+<div class="page-header">
+    <h1>❤️ Your Health Data</h1>
+    <p>Track your daily wellness measurements — weight, activity and sleep.</p>
+</div>
+""", unsafe_allow_html=True)
+
+
+# =========================================================
+# LOAD DATA
+# =========================================================
+
+def load_data():
+    return pd.read_sql_query(
+        "SELECT date, weight, steps, sleep FROM health_data ORDER BY date DESC, rowid DESC",
+        conn
+    )
+
+df = load_data()
+
+
+# =========================================================
+# LATEST METRICS
+# =========================================================
+
+if not df.empty:
+    latest = df.iloc[0]
+
+    st.markdown('<div class="section-title">📊 Your Latest Overview</div>', unsafe_allow_html=True)
+
+    mc1, mc2, mc3, mc4 = st.columns(4)
+
+    with mc1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <span class="metric-icon">⚖️</span>
+            <div class="metric-label">Latest Weight</div>
+            <div class="metric-value">{latest['weight']:.1f} kg</div>
+        </div>""", unsafe_allow_html=True)
+
+    with mc2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <span class="metric-icon">👣</span>
+            <div class="metric-label">Latest Steps</div>
+            <div class="metric-value">{int(latest['steps']):,}</div>
+        </div>""", unsafe_allow_html=True)
+
+    with mc3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <span class="metric-icon">😴</span>
+            <div class="metric-label">Latest Sleep</div>
+            <div class="metric-value">{latest['sleep']:.1f} hrs</div>
+        </div>""", unsafe_allow_html=True)
+
+    with mc4:
+        st.markdown(f"""
+        <div class="metric-card">
+            <span class="metric-icon">📅</span>
+            <div class="metric-label">Total Records</div>
+            <div class="metric-value">{len(df)}</div>
+        </div>""", unsafe_allow_html=True)
+
+
+# =========================================================
+# RECORD FORM
+# =========================================================
+
+st.markdown('<div class="section-title">📝 Record Today\'s Health Data</div>', unsafe_allow_html=True)
+
+st.markdown('<div class="form-card">', unsafe_allow_html=True)
+
+with st.form("health_entry_form"):
+
+    st.markdown('<div class="form-card-title">📋 Enter your measurements below</div>', unsafe_allow_html=True)
+
+    fc1, fc2 = st.columns(2)
+
+    with fc1:
+        health_date = st.date_input("📅 Date", value=date.today())
         weight = st.number_input(
-            "Weight (kg)",
-            min_value=0.0,
-            max_value=500.0,
-            value=50.0,
-            step=0.1
+            "⚖️ Weight (kg)",
+            min_value=0.0, max_value=500.0,
+            value=50.0, step=0.1,
+            format="%.1f"
         )
 
+    with fc2:
         steps = st.number_input(
-            "Daily Steps",
-            min_value=0,
-            max_value=200000,
-            value=0,
-            step=100
+            "👣 Daily Steps",
+            min_value=0, max_value=200000,
+            value=0, step=100
         )
-
         sleep = st.number_input(
-            "Sleep (hours)",
-            min_value=0.0,
-            max_value=24.0,
-            value=7.0,
-            step=0.5
+            "😴 Sleep (hours)",
+            min_value=0.0, max_value=24.0,
+            value=7.0, step=0.5,
+            format="%.1f"
         )
 
-        submitted = st.form_submit_button(
-            "Save Health Data"
+    submitted = st.form_submit_button(
+        "💾  Save Health Data",
+        use_container_width=True,
+        type="primary"
+    )
+
+    if submitted:
+        conn.execute(
+            "INSERT INTO health_data (date, weight, steps, sleep) VALUES (?, ?, ?, ?)",
+            (str(health_date), weight, int(steps), sleep)
         )
+        conn.commit()
+        st.success("✅ Health data saved successfully! Your record has been added.")
+        st.rerun()
 
-        if submitted:
+st.markdown('</div>', unsafe_allow_html=True)
 
-            conn.execute(
-                """
-                INSERT INTO health_data
-                (date, weight, steps, sleep)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    str(health_date),
-                    weight,
-                    int(steps),
-                    sleep
-                )
-            )
 
-            conn.commit()
+# =========================================================
+# REFRESH DATA
+# =========================================================
 
-            st.success(
-                "Health data saved successfully!"
-            )
+df = load_data()
 
-# -------------------------------
-# 5. LOAD HEALTH DATA
-# -------------------------------
 
-df = pd.read_sql_query(
-    """
-    SELECT date, weight, steps, sleep
-    FROM health_data
-    ORDER BY date DESC, rowid DESC
-    """,
-    conn
-)
+# =========================================================
+# CHARTS + RECORDS
+# =========================================================
 
-# -------------------------------
-# 6. DASHBOARD
-# -------------------------------
+if not df.empty:
 
-if page == "Dashboard":
+    st.markdown("""
+    <div class="tip-card">
+        💡 <b>Tracking Tip:</b> Regularly recording weight, activity and sleep
+        helps you understand your personal wellness patterns over time.
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.header("📊 Health Dashboard")
+    # Prepare chart data
+    chart_df = df.copy()
+    chart_df["date"] = pd.to_datetime(chart_df["date"])
+    chart_df = chart_df.sort_values("date")
 
-    if not df.empty:
+    # Charts
+    st.markdown('<div class="section-title">📈 Wellness Trends</div>', unsafe_allow_html=True)
 
-        latest = df.iloc[0]
+    chart_col1, chart_col2 = st.columns(2)
 
-        col1, col2, col3 = st.columns(3)
+    with chart_col1:
+        st.markdown('<div class="chart-card"><div class="chart-title">👣 Activity Trend — Daily Steps</div>', unsafe_allow_html=True)
+        st.line_chart(chart_df.set_index("date")["steps"], height=250, color="#8B72D9")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        col1.metric(
-            "Latest Weight",
-            f"{latest['weight']:.1f} kg"
-        )
+    with chart_col2:
+        st.markdown('<div class="chart-card"><div class="chart-title">😴 Sleep Trend — Hours per Day</div>', unsafe_allow_html=True)
+        st.line_chart(chart_df.set_index("date")["sleep"], height=250, color="#0284C7")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        col2.metric(
-            "Latest Steps",
-            f"{int(latest['steps'])}"
-        )
+    st.markdown('<div class="chart-card"><div class="chart-title">⚖️ Weight Trend — kg over Time</div>', unsafe_allow_html=True)
+    st.line_chart(chart_df.set_index("date")["weight"], height=240, color="#0F766E")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-        col3.metric(
-            "Latest Sleep",
-            f"{latest['sleep']:.1f} hours"
-        )
+    # Records table
+    st.markdown('<div class="section-title">📋 Health Records</div>', unsafe_allow_html=True)
 
-        st.subheader("📈 Daily Steps")
+    display_df = df.copy()
+    display_df.columns = ["Date", "Weight (kg)", "Steps", "Sleep (hrs)"]
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-        chart_df = df.copy()
-        chart_df["date"] = pd.to_datetime(
-            chart_df["date"]
-        )
+    # Export
+    st.markdown('<div class="section-title">📥 Export Your Data</div>', unsafe_allow_html=True)
 
-        chart_df = chart_df.sort_values("date")
+    csv_data = df.to_csv(index=False).encode("utf-8")
 
-        st.bar_chart(
-            chart_df.set_index("date")["steps"]
-        )
-
-        st.subheader("💤 Sleep History")
-
-        st.line_chart(
-            chart_df.set_index("date")["sleep"]
-        )
-
-        st.subheader("📋 Health Records")
-
-        st.dataframe(
-            df,
+    dl1, dl2 = st.columns([2, 5])
+    with dl1:
+        st.download_button(
+            label="📄  Download Health Report (CSV)",
+            data=csv_data,
+            file_name="aarogya_health_report.csv",
+            mime="text/csv",
             use_container_width=True
         )
 
-        st.subheader("📥 Download Health Report")
+else:
+    st.markdown("""
+    <div class="empty-state">
+        <span class="empty-state-icon">👩‍⚕️</span>
+        <div class="empty-state-title">No health records yet</div>
+        <div class="empty-state-desc">
+            Add your first health record using the form above to start<br>
+            building your personal wellness history.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        csv_data = df.to_csv(index=False).encode("utf-8")
 
-        st.download_button(
-            label="Download CSV Report",
-            data=csv_data,
-            file_name="health_report.csv",
-            mime="text/csv"
-        )
+# =========================================================
+# SAFETY NOTICE
+# =========================================================
 
-    else:
+st.markdown("""
+<div class="safety-card">
+    🛡️ <b>Medical Safety Notice:</b>
+    Aarogya-AI is designed for health tracking and general wellness information.
+    It does not diagnose medical conditions or replace professional medical advice.
+</div>
+""", unsafe_allow_html=True)
 
-        st.info(
-            "No health data found. "
-            "Open Enter Health Data to add your first record."
-        )
-
-# -------------------------------
-# 7. BASIC HEALTH ASSISTANT TOOL
-# -------------------------------
-
-if page == "Health Assistant":
-
-    st.header("🤖 Healthcare AI Assistant")
-
-    st.write(
-        "Ask questions about your recorded health data."
-    )
-
-    question = st.text_input(
-        "Enter your question",
-        placeholder=(
-            "Example: Show my health summary"
-        )
-    )
-
-    if st.button("Get Health Insights"):
-
-        if df.empty:
-
-            st.warning(
-                "Please enter health data first."
-            )
-
-        elif not question.strip():
-
-            st.warning(
-                "Please enter a question."
-            )
-
-        else:
-
-            q = question.lower()
-
-            if "step" in q or "activity" in q:
-
-                avg_steps = df["steps"].mean()
-
-                st.success(
-                    f"Your average recorded daily steps "
-                    f"are {avg_steps:.0f}."
-                )
-
-            elif "sleep" in q:
-
-                avg_sleep = df["sleep"].mean()
-
-                st.success(
-                    f"Your average recorded sleep is "
-                    f"{avg_sleep:.1f} hours."
-                )
-
-            elif "weight" in q:
-
-                latest_weight = df.iloc[0]["weight"]
-
-                st.success(
-                    f"Your latest recorded weight is "
-                    f"{latest_weight:.1f} kg."
-                )
-
-            elif (
-                "summary" in q
-                or "health" in q
-                or "report" in q
-            ):
-
-                st.subheader("Your Health Summary")
-
-                st.write(
-                    f"Total records: {len(df)}"
-                )
-
-                st.write(
-                    f"Average steps: "
-                    f"{df['steps'].mean():.0f}"
-                )
-
-                st.write(
-                    f"Average sleep: "
-                    f"{df['sleep'].mean():.1f} hours"
-                )
-
-                st.write(
-                    f"Latest recorded weight: "
-                    f"{df.iloc[0]['weight']:.1f} kg"
-                )
-
-            else:
-
-                st.info(
-                    "Try asking about steps, sleep, "
-                    "weight, or health summary."
-                )
-
-            st.caption(
-                "These insights summarize recorded data "
-                "and are not medical advice."
-            )
-
-# -------------------------------
-# 8. CLOSE DATABASE
-# -------------------------------
 
 conn.close()
