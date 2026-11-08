@@ -9,15 +9,20 @@ import pandas as pd
 # DATABASE
 # =========================================================
 
-try:
-    conn = sqlite3.connect("health_data.db")
-    df = pd.read_sql_query(
-        "SELECT date, weight, steps, sleep FROM health_data ORDER BY date DESC",
-        conn
-    )
-    conn.close()
-except Exception:
-    df = pd.DataFrame()
+@st.cache_data(ttl=60)
+def _load_rec_data():
+    try:
+        conn = sqlite3.connect("health_data.db")
+        df = pd.read_sql_query(
+            "SELECT date, weight, steps, sleep FROM health_data ORDER BY date DESC",
+            conn
+        )
+        conn.close()
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+df = _load_rec_data()
 
 
 # =========================================================

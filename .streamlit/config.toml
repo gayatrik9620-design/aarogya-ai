@@ -1,0 +1,11 @@
+[server]
+runOnSave = false
+fileWatcherType = "none"
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[client]
+showErrorDetails = false
+toolbarMode = "minimal"

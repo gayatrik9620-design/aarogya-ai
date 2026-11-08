@@ -9,16 +9,24 @@ from datetime import datetime
 # DATABASE
 # =========================================================
 
-try:
-    conn = sqlite3.connect("health_data.db")
-    df = pd.read_sql_query(
-        "SELECT date, weight, steps, sleep FROM health_data ORDER BY date DESC",
-        conn
-    )
-    conn.close()
-except Exception as e:
-    st.error(f"Unable to load health data: {e}")
+@st.cache_data(ttl=60)
+def _load_report_data():
+    try:
+        conn = sqlite3.connect("health_data.db")
+        df = pd.read_sql_query(
+            "SELECT date, weight, steps, sleep FROM health_data ORDER BY date DESC",
+            conn
+        )
+        conn.close()
+        return df
+    except Exception:
+        return None
+
+_df_result = _load_report_data()
+if _df_result is None:
+    st.error("Unable to load health data.")
     st.stop()
+df = _df_result
 
 
 # =========================================================
